@@ -1,6 +1,6 @@
 (in-package :bnf)
 
-(defun read-string-set (predicate)
+(defun string-set (predicate)
   (lambda (string)
     (loop for i upfrom 0
           for char across string
@@ -11,7 +11,7 @@
                             (not (zerop i)))))))
 
 (defun punctuation-p (char)
-  (or (char<= #\! char #\/)
+  (cl:or (char<= #\! char #\/)
       (char<= #\: char #\@)
       (char<= #\[ char #\`)
       (char<= #\{ char #\~)))
@@ -23,10 +23,10 @@
   (char<= #\0 char #\9))
 
 (defun letter-p (char)
-  (or (char<= #\A char #\Z)
+  (cl:or (char<= #\A char #\Z)
       (char<= #\a char #\z)))
 
-(defun read-word (word &optional case-sensitive)
+(defun word (word &optional case-sensitive)
   (lambda (string)
     (loop for i upfrom 0
           for a across word
@@ -40,12 +40,12 @@
                             (subseq string i)
                             (not (zerop i)))))))
 
-(defun bnf-optional (func)
+(defun optional (func)
   (lambda (string)
     (multiple-value-bind (word new-string) (funcall func string)
       (values word new-string t))))
 
-(defun bnf-sequence (&rest seq)
+(defun sequence (&rest seq)
   (lambda (string)
     (loop with new-string = string
           for func in seq
@@ -60,7 +60,7 @@
                         (values words new-string t)
                         (values '() string nil))))))
 
-(defun bnf-recursion (func)
+(defun recursion (func)
   (lambda (string)
     (loop with new-string = string
           for (word tmp-string success) =
@@ -69,3 +69,11 @@
           do (setf new-string tmp-string)
           collect word into words
           finally (return (values words new-string t)))))
+
+(defun or (&rest funcs)
+  (lambda (string)
+    (loop for func in funcs
+          for (word new-string success) =
+              (multiple-value-list (funcall func string))
+          until success
+          finally (return (values word new-string success)))))
