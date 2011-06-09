@@ -24,7 +24,11 @@
 
 (defun letter-p (char)
   (cl:or (char<= #\A char #\Z)
-      (char<= #\a char #\z)))
+         (char<= #\a char #\z)))
+
+(defun alpha-numeric-p (char)
+  (cl:or (diget-p char)
+         (letter-p char)))
 
 (defun word (word &optional case-sensitive)
   (lambda (string)
@@ -54,8 +58,8 @@
                (funcall func new-string))
           while success
           do (setf new-string tmp-string)
-          collect word into words
-          finally 
+          unless (null word) collect word into words
+          finally
             (return (if success 
                         (values words new-string t)
                         (values '() string nil))))))
@@ -77,3 +81,15 @@
               (multiple-value-list (funcall func string))
           until success
           finally (return (values word new-string success)))))
+
+(defun merge (func)
+  (lambda (string)
+    (multiple-value-bind (word string success) (funcall func string)
+      (if (and success (every #'stringp word))
+          (values (apply #'concatenate 'string word) string t)
+          (values word string nil)))))
+
+(defun ignore (func)
+  (lambda (string)
+    (values-list (cons nil (cdr (multiple-value-list (funcall func string)))))))
+      
