@@ -30,7 +30,7 @@
   (cl:or (diget-p char)
          (letter-p char)))
 
-(defun word (word &optional case-sensitive)
+(defun literal (word &optional case-sensitive)
   (lambda (string)
     (loop for i upfrom 0
           for a across word
@@ -54,11 +54,13 @@
     (loop with new-string = string
           for func in seq
           for (word tmp-string success) =
-              (multiple-value-list 
-               (funcall func new-string))
+              (multiple-value-list (funcall func new-string))
           while success
           do (setf new-string tmp-string)
-          unless (null word) collect word into words
+          if (and (listp word) (null (car word)))
+            append (cdr word) into words
+          else
+            collect word into words
           finally
             (return (if success 
                         (values words new-string t)
@@ -72,15 +74,21 @@
           while success
           do (setf new-string tmp-string)
           collect word into words
-          finally (return (values words new-string t)))))
+          finally (return (values (cons nil words) new-string t)))))
 
-(defun or (&rest funcs)
-  (lambda (string)
-    (loop for func in funcs
-          for (word new-string success) =
-              (multiple-value-list (funcall func string))
-          until success
-          finally (return (values word new-string success)))))
+(defmacro or (&rest funcs)
+  (let ((word (gensym "WORD-"))
+        (new-string (gensym "NEW-STRING-"))
+        (success (gensym "SUCCESS-")))
+    `(lambda (string)
+       (let (,word ,new-string ,success)
+         (tagbody
+            ,@(loop for func in funcs
+                    collect `(setf (values ,word ,new-string ,success)
+                                   (funcall ,func string))
+                    collect `(when ,success (go end)))
+          end)
+         (values ,word ,new-string ,success)))))
 
 (defun merge (func)
   (lambda (string)
@@ -92,4 +100,15 @@
 (defun ignore (func)
   (lambda (string)
     (values-list (cons nil (cdr (multiple-value-list (funcall func string)))))))
-      
+
+(defun collapse (func)
+  (lambda (string)
+    (multiple-value-bind (word string success) (funcall func string)
+      (values
+       (loop for item in word
+             when (listp item)
+               append item
+             else
+               collect item)
+          string
+          success))))

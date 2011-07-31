@@ -10,10 +10,11 @@
            #:diget-p
            #:letter-p
            #:alpha-numeric-p
-           #:word
+           #:literal
            #:optional
            #:sequence
            #:recursion
            #:or
            #:merge
-           #:ignore))
+           #:ignore
+           #:collapse))
