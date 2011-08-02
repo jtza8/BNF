@@ -44,11 +44,6 @@
                             (subseq string i)
                             (not (zerop i)))))))
 
-(defun optional (func)
-  (lambda (string)
-    (multiple-value-bind (word new-string) (funcall func string)
-      (values word new-string t))))
-
 (defun sequence (&rest seq)
   (lambda (string)
     (loop with new-string = string
@@ -65,6 +60,11 @@
             (return (if success 
                         (values words new-string t)
                         (values '() string nil))))))
+
+(defun optional (func)
+  (lambda (string)
+    (multiple-value-bind (word new-string) (funcall func string)
+      (values word new-string t))))
 
 (defun recursion (func)
   (lambda (string)
